@@ -1,8 +1,9 @@
-//const dropArea = document.getElementById('drop-area');
+
 let dropArea;
 let table;
 let droped_files = [];
 let file_names = [];
+let file_dates = [];
 
 document.addEventListener('DOMContentLoaded', (event) => {
     dropArea = document.getElementById('drop-area');
@@ -28,28 +29,11 @@ function handleDrop(event) {
     const files = event.dataTransfer.files;
     console.log(files); // Handle the files here
     droped_files.push(...files);
-    for (let i = 0; i < files.length; i++) {
-        const row = table.insertRow(-1);
-        //create list of n cells added to row
-        let cells = [];
-        for (let j = 0; j < 5; j++) {
-            cells[j] = row.insertCell(j);
-        }
-        /*const cell1 = row.insertCell(0);
-        cell2.innerHTML = files[i].name;
-        const cell2 = row.insertCell(1);
-        //date
+    for (const file of files) {
 
-        const cell3 = row.insertCell(2);
-        //subject line
-        cell3.innerHTML = "Subject";
-        const cell4 = row.insertCell(3);
-        //message summary
-        cell4.innerHTML = "Message Summary";
-        */
-        //FileReader(files[i], row);        
+
         const filereader = new FileReader();
-        filereader.readAsText(files[i]);
+        filereader.readAsText(file);
         filereader.onload = function(e) {
             const result = e.target.result;
             /*
@@ -59,13 +43,24 @@ function handleDrop(event) {
                 <th>subject</th>
                 <th>message summary</th>
             */
-            cells[0].innerHTML = files[i].name;
-            if (file_names.includes(files[i].name)) {
+            const date = new Date(getEMLattribute(result, "Date"));
+            file_dates.push(date);
+            file_dates.sort((a, b) => b - a); //sort descending
+            const index = file_dates.indexOf(date);
+            const row = table.insertRow(index + 1); // +1 to account for header row
+            const cells = [];
+            for (let j = 0; j < 5; j++) {
+                cells.push(row.insertCell(j));
+            }
+
+            cells[0].innerHTML = file.name;
+            if (file_names.includes(file.name)) {
                 cells[0].parentNode.style.backgroundColor = '#ffc107'; //yellow
             }
-            file_names.push(files[i].name);
+            file_names.push(file.name);
             cells[1].innerHTML = getEMLattribute(result, "From");
-            cells[2].innerHTML = getEMLattribute(result, "Date");
+            //cells[2].innerHTML = date.toString();
+            cells[2].innerHTML = date.toString() !== "Invalid Date" ? date.toString() : '';
             cells[3].innerHTML = getEMLattribute(result, "Subject");
             cells[4].innerHTML = getEmlBody(result).substring(0, 100) + '...';
             //check that no cells are empty
