@@ -2,6 +2,7 @@
 let dropArea;
 let table;
 let droped_files = [];
+let file_names = [];
 
 document.addEventListener('DOMContentLoaded', (event) => {
     dropArea = document.getElementById('drop-area');
@@ -59,6 +60,10 @@ function handleDrop(event) {
                 <th>message summary</th>
             */
             cells[0].innerHTML = files[i].name;
+            if (file_names.includes(files[i].name)) {
+                cells[0].parentNode.style.backgroundColor = '#ffc107'; //yellow
+            }
+            file_names.push(files[i].name);
             cells[1].innerHTML = getEMLattribute(result, "From");
             cells[2].innerHTML = getEMLattribute(result, "Date");
             cells[3].innerHTML = getEMLattribute(result, "Subject");
@@ -66,8 +71,11 @@ function handleDrop(event) {
             //check that no cells are empty
             for (let k = 0; k < cells.length; k++) {
                 if (cells[k].innerHTML === '') {
-                    cells[k].parentNode.style.backgroundColor = '#f8d7da'; //light red
-                    cells[k].style.backgroundColor = '#bc0e1c'; //dark red
+                    const parentRow = cells[k].parentNode;
+                    if (parentRow.style.backgroundColor !== 'rgb(255, 193, 7)') { //not yellow
+                        parentRow.style.backgroundColor = '#f8d7da'; //light red
+                    }
+                        cells[k].style.backgroundColor = '#bc0e1c'; //dark red
                 }
             }
         }
