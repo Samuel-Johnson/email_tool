@@ -3,9 +3,16 @@
 <head>
     <title>My Web Page</title>
     <script src="drop.js"></script>
+    <style>
+        th, td {
+            border: 1px solid black;
+            padding: 8px; /* Optional: Adds some space between text and border */
+        }
+    </style>
 </head>
 <body>
     <h1>Time Entry website</h1>
+    <button onclick="downloadJsonObject()">Download JSON</button>
 
     <div id="drop-area" style="border: 2px dashed #ccc; width: 300px; height: 200px; text-align: center; padding: 20px;">
         <p>Drag and drop files here</p>

@@ -1,9 +1,128 @@
-
 let dropArea;
 let table;
 let droped_files = [];
-let file_names = [];
-let file_dates = [];
+
+
+const email_files = {
+    rows: [],
+};
+
+
+function downloadJsonObject() {
+    // 1. Define your JavaScript object
+    const dataObject = email_files.rows;
+
+    // 2. Convert the object to a JSON string
+    const jsonString = JSON.stringify(dataObject, null, 2); // 'null, 2' for pretty formatting
+
+    // 3. Create a Blob object with the JSON data and specify the MIME type
+    const blob = new Blob([jsonString], { type: "application/json" });
+
+    // 4. Generate a temporary URL for the Blob
+    const url = URL.createObjectURL(blob);
+
+    // 5. Create a temporary anchor element and set its attributes
+    const downloadLink = document.createElement('a');
+    downloadLink.href = url;
+    downloadLink.download = 'data_object.json'; // Set the desired file name
+
+    // 6. Append link to body, trigger the click, and remove the link
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+
+    // 7. Revoke the temporary URL to free up resources
+    URL.revokeObjectURL(url);
+}
+
+
+email_files.update = function(maxStringLength=100) {
+
+    //clear the table
+    table.replaceChildren();
+    
+    //draw header
+    const header = table.insertRow(0);
+    for (const [attribute_name, attribute_function] of Object.entries(this.rows[0])) {
+        header.insertCell().innerHTML = attribute_name;
+    }
+
+    //draw the row in the table
+    for (const row of this.rows) {
+        const table_row = table.insertRow();
+        for (const [attribute_name, attribute_function] of Object.entries(row)) {
+            const cell = table_row.insertCell();
+            cell.innerHTML = row[attribute_name].toString().substring(0, maxStringLength) || '';
+        }
+    }
+
+    //highlight duplicate file names
+    const filename_counts = {};
+    for (const row of table.rows) {
+        const filename = row.cells[0].innerHTML;
+        if (filename in filename_counts) {
+            filename_counts[filename] += 1;
+        } else {
+            filename_counts[filename] = 1;
+        }
+    }
+    for (const row of table.rows) {
+        const filename = row.cells[0].innerHTML;
+        if (filename_counts[filename] > 1) {
+            row.style.backgroundColor = '#ffc107'; //yellow
+        }
+    }
+
+    //highlight rows with missing attributes
+    for (const row of table.rows) {
+        for (const cell of row.cells) {
+            if (cell.innerHTML === '') {
+                const parentRow = cell.parentNode;
+                if (parentRow.style.backgroundColor !== 'rgb(255, 193, 7)') { //not yellow
+                    parentRow.style.backgroundColor = '#f8d7da'; //light red
+                }
+                cell.style.backgroundColor = '#bc0e1c'; //dark red
+            }
+        }
+    }
+};
+
+email_files.sortByDate = function(order = 'desc') {
+    this.rows.sort((a, b) => {
+        if (order === 'asc') {
+            return new Date(a.date) - new Date(b.date);
+        } else if (order === 'desc') {
+            return new Date(b.date) - new Date(a.date);
+        }
+    });
+}
+
+function parseEmlFile(file, attribute_list) {
+     const filereader = new FileReader();
+        filereader.readAsText(file);
+        filereader.onload = (e) => {
+            const result = e.target.result;
+            
+            const date = new Date(getEMLattribute(result, "Date"));
+            const filename = file.name;
+            const email_message = getEmlBody(result);
+
+            const email_file = {
+                filename: filename,
+                date: date.toString() === 'Invalid Date' ? '' : date,
+                message: email_message
+            };
+
+            for (const [attribute_name, attribute_function] of Object.entries(attribute_list)) {
+                const attribute_value = attribute_function(result);
+                email_file[attribute_name] = attribute_value;
+            }
+            
+            email_files.rows.push(email_file);
+            email_files.sortByDate('desc');
+            email_files.update();
+        }
+}
 
 document.addEventListener('DOMContentLoaded', (event) => {
     dropArea = document.getElementById('drop-area');
@@ -32,50 +151,11 @@ function handleDrop(event) {
     for (const file of files) {
 
 
-        const filereader = new FileReader();
-        filereader.readAsText(file);
-        filereader.onload = function(e) {
-            const result = e.target.result;
-            /*
-                <th>file name</th>
-                <th>sender</th>
-                <th>date</th>
-                <th>subject</th>
-                <th>message summary</th>
-            */
-            const date = new Date(getEMLattribute(result, "Date"));
-            file_dates.push(date);
-            file_dates.sort((a, b) => b - a); //sort descending
-            const index = file_dates.indexOf(date);
-            const row = table.insertRow(index + 1); // +1 to account for header row
-            const cells = [];
-            for (let j = 0; j < 5; j++) {
-                cells.push(row.insertCell(j));
-            }
-
-            cells[0].innerHTML = file.name;
-            if (file_names.includes(file.name)) {
-                cells[0].parentNode.style.backgroundColor = '#ffc107'; //yellow
-            }
-            file_names.push(file.name);
-            cells[1].innerHTML = getEMLattribute(result, "From");
-            //cells[2].innerHTML = date.toString();
-            cells[2].innerHTML = date.toString() !== "Invalid Date" ? date.toString() : '';
-            cells[3].innerHTML = getEMLattribute(result, "Subject");
-            cells[4].innerHTML = getEmlBody(result).substring(0, 100) + '...';
-            //check that no cells are empty
-            for (let k = 0; k < cells.length; k++) {
-                if (cells[k].innerHTML === '') {
-                    const parentRow = cells[k].parentNode;
-                    if (parentRow.style.backgroundColor !== 'rgb(255, 193, 7)') { //not yellow
-                        parentRow.style.backgroundColor = '#f8d7da'; //light red
-                    }
-                        cells[k].style.backgroundColor = '#bc0e1c'; //dark red
-                }
-            }
-        }
+        parseEmlFile(file, {
+            "From": (emlContent) => getEMLattribute(emlContent, "From"),
+            "Subject": (emlContent) => getEMLattribute(emlContent, "Subject"),
+        });
     }
-    
 }
 
 function getEMLattribute(emlContent, attribute) {
