@@ -59,6 +59,16 @@ email_files.update = function(maxStringLength=100) {
             const cell = table_row.insertCell();
             cell.innerHTML = row[attribute_name].toString().substring(0, maxStringLength) || '';
         }
+        //add remove button
+        const remove_cell = table_row.insertCell();
+        const remove_button = document.createElement('button');
+        remove_button.innerHTML = 'Remove';
+        remove_button.onclick = () => {
+            const row_index = Array.from(table.rows).indexOf(table_row) - 1; //adjust for header row
+            email_files.rows.splice(row_index, 1);
+            email_files.update(maxStringLength);
+        };
+        remove_cell.appendChild(remove_button);
     }
 
     //highlight duplicate file names
