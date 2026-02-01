@@ -7,6 +7,11 @@ const email_files = {
     rows: [],
 };
 
+function changeCharacterLength() {
+    const maxStringLength = parseInt(document.getElementById('message-summary-length').value);
+    email_files.update(maxStringLength);
+}
+
 
 function downloadJsonObject() {
     // 1. Define your JavaScript object
